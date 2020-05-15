@@ -1,21 +1,132 @@
 use std::num::ParseIntError;
 use std::ops::Mul;
+use std::env::var;
 
 fn main() {
+    test____float2Fixed();
+    test____digitLength();
+    test____times();
+}
+
+fn test____float2Fixed() {
+    println!("test____float2Fixed");
     let str = "0.12345789";
-    let a = digitLength(str);
     let int_a = match str.parse::<f64>() {
         Ok(n) => { float2Fixed(n) }
         Err(_) => 0,
     };
-    println!("{}", a);
-    println!("{}", int_a)
+    println!("{}", int_a);
 }
 
+fn test____digitLength() {
+    println!("test____digitLength");
+    let str = "0.12345789";
+    let a = digitLength(str);
+    println!("{}", a);
+}
+
+fn test____times() {
+    println!("test____times");
+    println!("{}", times(21_0000.0, 1_0000.0, vec![&1000.0, &8.2]));        // 常见出错值1
+    println!("{}", times(0.012345, 0.000001, vec![]));                      // 常见出错值2
+    println!("{}", times(512.06, 100.0, vec![]));                           // 常见出错值3
+    //
+    println!("{}", times(0.0000_0000_1, 0.0000_0000_2, vec![]));            // 超小值 * 超小值
+    println!("{}", times(0.0000_0000_1, 1_0000_0000_2.0, vec![]));          // 超小值 * 超大值
+    println!("{}", times(123456789.123456789, 123456789.123456789, vec![]));// 超大值 * 超大值
+}
+
+
+///
+/// 精确除法
+///     1.
+///
+fn divide(a: f64, b: f64, vars: Vec<&f64>) -> f64 {
+    if vars.len() > 0 {
+        return divide(divide(a, b, vec![]), *vars[0],
+                      // // 此处，简单的克隆并截取一下。然后取返回值（被替换掉的一段）
+                      vars.clone().splice(1.., &[]).collect(),
+        );
+    }
+    // 放大为整数
+    let zoom_a = float2Fixed(a);
+    let zoom_b = float2Fixed(b);
+    // 小数位相减
+    let scaleNum = digitLength(&a.to_string()) - digitLength(&b.to_string());
+
+    let result = zoom_a / zoom_b;
+
+    0.0
+}
+
+///
+/// 精确乘法
+///     1.对于Vec的性能，可以做进一步优化
+///
+fn times(a: f64, b: f64, vars: Vec<&f64>) -> f64 {
+    if vars.len() > 0 {
+        return times(times(a, b, vec![]), *vars[0],
+                     // // 此处，简单的克隆并截取一下。然后取返回值（被替换掉的一段）
+                     vars.clone().splice(1.., &[]).collect(),
+        );
+    }
+    // 放大为整数
+    let zoom_a = float2Fixed(a);
+    let zoom_b = float2Fixed(b);
+    // 小数位相加
+    let scaleNum = digitLength(&a.to_string()) + digitLength(&b.to_string());
+
+    // 此处，可能导致溢出？？？
+    // 此处，可能导致溢出？？？
+    // 此处，可能导致溢出？？？
+    // let leftV = (zoom_a * zoom_b) as f64;
+    let leftV = match zoom_a.checked_mul(zoom_b) {
+        Some(n) => n,
+        None => {
+            println!("溢出了！！！采取非精确算法");
+            return a * b;
+        }
+    };
+    println!("          times {}", leftV);
+    println!("          times {}", scaleNum);
+    let powRatio = 10__f64.powf(scaleNum as f64);
+    println!("          times {}", powRatio);
+
+    // TIP 此处，这是原先的代码，在计算【10.pow(12)】时，会报错溢出。
+    // leftV / ((10__i32.pow(scaleNum as u32)) as f64)
+
+    (leftV as f64) / (powRatio as f64)
+}
+
+
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+
+///
 /// 转化【小数】为【整数】
+///
 fn float2Fixed(num: f64) -> i64 {
     let str = num.to_string();
-    println!("str {}", str);
+    println!("          float2Fixed str {}", str);
     let isSci: bool = str.contains('e') || str.contains('E');
     if !isSci {             // 不是科学计数法
         match str.replace('.', "").parse::<i64>() {
