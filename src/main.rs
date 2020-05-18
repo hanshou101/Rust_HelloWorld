@@ -1,11 +1,14 @@
 use std::num::ParseIntError;
 use std::ops::Mul;
-use std::env::var;
+use std::cmp;
 
 fn main() {
     test____float2Fixed();
     test____digitLength();
     test____times();
+    test____divide();
+    test____plus();
+    test____minus();
 }
 
 fn test____float2Fixed() {
@@ -30,12 +33,119 @@ fn test____times() {
     println!("{}", times(21_0000.0, 1_0000.0, vec![&1000.0, &8.2]));        // 常见出错值1
     println!("{}", times(0.012345, 0.000001, vec![]));                      // 常见出错值2
     println!("{}", times(512.06, 100.0, vec![]));                           // 常见出错值3
+    println!("{}", times(0.11, 1.1, vec![]));                           // 常见出错值3
+    println!("{}", times(1.11, 10.0, vec![]));                           // 常见出错值3
+    println!("{}", times(512.06, 100.0, vec![]));                           // 常见出错值3
+    println!("{}", times(1.02, 0.05, vec![]));                           // 常见出错值3
+    println!("{}", times(575697.82, 100.0, vec![]));                           // 常见出错值3
+    println!("{}", times(0.1, 0.2, vec![]));                           // 常见出错值3
+    println!("{}", times(2090.5, 8.61, vec![]));                           // 常见出错值3
+    println!("{}", times(0.2, 0.4, vec![]));                           // 常见出错值3
+    println!("{}", times(6.0, 0.2, vec![]));                           // 常见出错值3
+    println!("{}", times(200.3, 3.0, vec![]));                           // 常见出错值3
+    println!("{}", times(600.9, 3.0, vec![]));                           // 常见出错值3
     //
     println!("{}", times(0.0000_0000_1, 0.0000_0000_2, vec![]));            // 超小值 * 超小值
     println!("{}", times(0.0000_0000_1, 1_0000_0000_2.0, vec![]));          // 超小值 * 超大值
     println!("{}", times(123456789.123456789, 123456789.123456789, vec![]));// 超大值 * 超大值
 }
 
+fn test____minus() {
+    println!("test____minus");
+    println!("{}", minus(1.1, 1.0, vec![]));
+    println!("{}", minus(57168.619999999995, 11087.28, vec![]));
+    println!("{}", minus(-0.09, 0.01, vec![]));
+    println!("{}", minus(2.0, 1.10, vec![]));
+    println!("{}", minus(0.3, 0.2, vec![]));
+}
+
+fn test____plus() {
+    println!("test____plus");
+    println!("{}", plus(0.1, 0.2, vec![]));
+    println!("{}", plus(0.28, 0.34, vec![]));
+    println!("{}", plus(2412.02, 11087.64, vec![&8338.28, &5580.0]));
+    println!("{}", plus(2.28, 2.34, vec![]));
+    println!("{}", plus(33.28, 3.34, vec![]));
+    println!("{}", plus(3.28, 3.34, vec![]));
+    println!("{}", plus(4.28, 4.34, vec![]));
+    println!("{}", plus(5.28, 5.34, vec![]));
+    println!("{}", plus(8.28, 8.34, vec![]));
+    println!("{}", plus(33.28, 9.34, vec![]));
+}
+
+fn test____divide() {
+    println!("test____divide");
+    println!("{}", divide(0.000001, 0.0001, vec![]));
+    println!("{}", divide(0.3, 0.2, vec![]));
+}
+
+
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+
+
+///
+/// 精确减法
+///     1.
+///
+fn minus(a: f64, b: f64, vars: Vec<&f64>) -> f64 {
+    if vars.len() > 0 {
+        return minus(minus(a, b, vec![]), *vars[0],
+                     vars.clone().splice(1.., &[]).collect(),
+        );
+    }
+    // 小数位，取最大值
+    let scaleNum = cmp::max(digitLength(&a.to_string()), digitLength(&b.to_string()));
+    let powRatio = 10__f64.powf(scaleNum as f64);
+
+    (
+        times(a, powRatio, vec![]) - times(b, powRatio, vec![])
+    ) / powRatio
+}
+
+///
+/// 精确加法
+///     1.
+///
+fn plus(a: f64, b: f64, vars: Vec<&f64>) -> f64 {
+    if vars.len() > 0 {
+        return plus(plus(a, b, vec![]), *vars[0],
+                    vars.clone().splice(1.., &[]).collect(),
+        );
+    }
+    // 小数位，取最大值
+    let scaleNum = cmp::max(digitLength(&a.to_string()), digitLength(&b.to_string()));
+    let powRatio = 10__f64.powf(scaleNum as f64);
+
+    (
+        times(a, powRatio, vec![]) + times(b, powRatio, vec![])
+    ) / powRatio
+}
+
+
+///
+/// 精确减法
+///     1.
+///
 
 ///
 /// 精确除法
@@ -49,14 +159,20 @@ fn divide(a: f64, b: f64, vars: Vec<&f64>) -> f64 {
         );
     }
     // 放大为整数
-    let zoom_a = float2Fixed(a);
-    let zoom_b = float2Fixed(b);
+    let zoom_a = float2Fixed(a) as f64;
+    let zoom_b = float2Fixed(b) as f64;
     // 小数位相减
     let scaleNum = digitLength(&a.to_string()) - digitLength(&b.to_string());
 
-    let result = zoom_a / zoom_b;
+    let result = (zoom_a / zoom_b) as f64;
 
-    0.0
+    println!("          times {}", result);
+    println!("          times {}", scaleNum);
+
+    let powRatio = 10__f64.powf(scaleNum as f64);
+    println!("          times {}", powRatio);
+
+    times(result, powRatio, vec![])
 }
 
 ///
