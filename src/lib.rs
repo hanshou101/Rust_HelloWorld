@@ -1,9 +1,10 @@
 extern crate wasm_bindgen;
 extern crate js_sys;
+extern crate bigdecimal;
 
 use wasm_bindgen::prelude::*;
-use js_sys::Array;
-use bigdecimal::{BigDecimal, Zero};
+// use js_sys::Array;
+use bigdecimal::{BigDecimal, Zero, FromPrimitive, ToPrimitive};
 
 #[test]
 fn test() {
@@ -88,16 +89,59 @@ fn test____divide() {
 
 /// 精确加法
 #[wasm_bindgen]
-pub fn plus(a: f64, b: f64, vars: Vec<f64>) -> f64 {}
+pub fn plus(a: f64, b: f64, vars: Vec<f64>) -> f64 {
+    // (BigDecimal::new(a, 10) + BigDecimal::new(b, 10)).to_f64()
+    /*
+            let bigA = BigDecimal::from_f64(a).unwrap();
+            let bigB = BigDecimal::from_f64(b).unwrap();
+            (bigA + bigB).to_f64().unwrap()
+    */
+    if vars.len() > 0 {
+        return plus(plus(a, b, vec![]), vars[0],
+                    vars.clone().splice(1.., [].iter().cloned()).collect(),
+        );
+    }
+    (
+        BigDecimal::from_f64(a).unwrap() + BigDecimal::from_f64(b).unwrap()
+    ).to_f64().unwrap()
+}
 
 /// 精确减法
 #[wasm_bindgen]
-pub fn minus(a: f64, b: f64, mut vars: Vec<f64>) -> f64 {}
+pub fn minus(a: f64, b: f64, mut vars: Vec<f64>) -> f64 {
+    if vars.len() > 0 {
+        return minus(minus(a, b, vec![]), vars[0],
+                     vars.clone().splice(1.., [].iter().cloned()).collect(),
+        );
+    }
+    (
+        BigDecimal::from_f64(a).unwrap() - BigDecimal::from_f64(b).unwrap()
+    ).to_f64().unwrap()
+}
 
 /// 精确乘法
 #[wasm_bindgen]
-pub fn times(a: f64, b: f64, vars: Vec<f64>) -> f64 {}
+pub fn times(a: f64, b: f64, vars: Vec<f64>) -> f64 {
+    if vars.len() > 0 {
+        return times(times(a, b, vec![]), vars[0],
+                     vars.clone().splice(1.., [].iter().cloned()).collect(),
+        );
+    }
+    (
+        BigDecimal::from_f64(a).unwrap() * BigDecimal::from_f64(b).unwrap()
+    ).to_f64().unwrap()
+}
 
 /// 精确除法
 #[wasm_bindgen]
-pub fn divide(a: f64, b: f64, vars: Vec<f64>) -> f64 {}
+pub fn divide(a: f64, b: f64, vars: Vec<f64>) -> f64 {
+    if vars.len() > 0 {
+        return divide(divide(a, b, vec![]), vars[0],
+                      // // 此处，简单的克隆并截取一下。然后取返回值（被替换掉的一段）
+                      vars.clone().splice(1.., [].iter().cloned()).collect(),
+        );
+    }
+    (
+        BigDecimal::from_f64(a).unwrap() / BigDecimal::from_f64(b).unwrap()
+    ).to_f64().unwrap()
+}
